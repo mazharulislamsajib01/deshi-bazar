@@ -1,0 +1,17 @@
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Frontend dependencies
+node_modules/
+dist/
+
+# IDE files
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
