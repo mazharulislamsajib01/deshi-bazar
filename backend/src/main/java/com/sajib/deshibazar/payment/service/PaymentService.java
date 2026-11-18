@@ -2,6 +2,7 @@
 package com.sajib.deshibazar.payment.service;
 
 import com.sajib.deshibazar.order.entity.Order;
+import com.sajib.deshibazar.order.entity.OrderItem;
 import com.sajib.deshibazar.order.entity.OrderStatus;
 import com.sajib.deshibazar.order.repository.OrderRepository;
 import com.sajib.deshibazar.payment.dto.PaymentRequest;
@@ -9,6 +10,8 @@ import com.sajib.deshibazar.payment.dto.PaymentResponse;
 import com.sajib.deshibazar.payment.entity.Payment;
 import com.sajib.deshibazar.payment.entity.PaymentStatus;
 import com.sajib.deshibazar.payment.repository.PaymentRepository;
+import com.sajib.deshibazar.product.entity.Product;
+import com.sajib.deshibazar.product.repository.ProductRepository;
 import com.sajib.deshibazar.user.entity.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,13 +23,16 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
 
     public PaymentService(
             PaymentRepository paymentRepository,
-            OrderRepository orderRepository
+            OrderRepository orderRepository,
+            ProductRepository productRepository
     ) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
     }
 
     @Transactional
@@ -53,6 +59,35 @@ public class PaymentService {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Payment already exists for this order"
             );
+        }
+
+        // Check stock and decrease it for every ordered product
+        for (OrderItem orderItem : order.getItems()) {
+
+            Product product = productRepository.findById(
+                    orderItem.getProduct().getId()
+            ).orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Product not found"
+            ));
+
+            int orderedQuantity = orderItem.getQuantity();
+
+//            if (product.getStock() < orderedQuantity) {
+//                throw new ResponseStatusException(
+//                        HttpStatus.BAD_REQUEST,
+//                        "Insufficient stock for product: " + product.getName()
+//                );
+//            }
+            if (product.getStock() < orderedQuantity) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Stock Out: " + product.getName() + " is out of stock."
+                );
+            }
+
+            product.setStock(product.getStock() - orderedQuantity);
+
+            productRepository.save(product);
         }
 
         Payment payment = new Payment();

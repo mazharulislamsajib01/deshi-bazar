@@ -1,3 +1,4 @@
+
 package com.sajib.deshibazar.product.repository;
 
 import com.sajib.deshibazar.product.entity.Product;
@@ -10,4 +11,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByNameContainingIgnoreCase(String keyword);
 
     List<Product> findByCategoryIgnoreCase(String category);
+
+    List<Product> findByActiveTrue();
 }

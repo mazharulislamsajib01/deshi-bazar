@@ -1,4 +1,3 @@
-
 package com.sajib.deshibazar.cart.dto;
 
 import java.math.BigDecimal;
@@ -12,6 +11,7 @@ public class CartItemResponse {
     private Integer quantity;
     private BigDecimal subtotal;
     private String imageUrl;
+    private Integer availableStock;
 
     public CartItemResponse(
             Long id,
@@ -20,7 +20,8 @@ public class CartItemResponse {
             BigDecimal price,
             Integer quantity,
             BigDecimal subtotal,
-            String imageUrl
+            String imageUrl,
+            Integer availableStock
     ) {
         this.id = id;
         this.productId = productId;
@@ -29,6 +30,7 @@ public class CartItemResponse {
         this.quantity = quantity;
         this.subtotal = subtotal;
         this.imageUrl = imageUrl;
+        this.availableStock = availableStock;
     }
 
     public Long getId() {
@@ -58,5 +60,8 @@ public class CartItemResponse {
     public String getImageUrl() {
         return imageUrl;
     }
-}
 
+    public Integer getAvailableStock() {
+        return availableStock;
+    }
+}

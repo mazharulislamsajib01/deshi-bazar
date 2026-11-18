@@ -30,9 +30,15 @@ public class Product {
 
     private LocalDateTime createdAt;
 
+    // Soft Delete field
+    private Boolean active = true;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (active == null) {
+            active = true;
+        }
     }
 
     public Long getId() {
@@ -89,5 +95,13 @@ public class Product {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Boolean getActive() {
+        return active == null || active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 }

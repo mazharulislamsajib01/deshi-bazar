@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
@@ -40,10 +41,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CorsConfigurationSource corsConfigurationSource
     ) throws Exception {
 
         http
+                .cors(cors ->
+                        cors.configurationSource(corsConfigurationSource)
+                )
+
                 .csrf(AbstractHttpConfigurer::disable)
 
                 .sessionManagement(session ->
@@ -60,12 +66,17 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/refresh"
                         ).permitAll()
+
+                        // Only ADMIN can manage inventory
+                        .requestMatchers("/api/inventory/**").hasRole("ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -102,6 +113,14 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/uploads/**"
+                        ).permitAll()
+
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/products",
+                                "/api/products/**"
                         ).permitAll()
 
                         .anyRequest().authenticated()

@@ -11,6 +11,7 @@ import com.sajib.deshibazar.order.entity.Order;
 import com.sajib.deshibazar.order.entity.OrderItem;
 import com.sajib.deshibazar.order.entity.OrderStatus;
 import com.sajib.deshibazar.order.repository.OrderRepository;
+import com.sajib.deshibazar.product.entity.Product;
 import com.sajib.deshibazar.user.entity.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,14 +43,24 @@ public class OrderService {
     public OrderResponse createOrder(User user) {
 
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Cart not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Cart not found"));
 
-        List<CartItem> cartItems =
-                cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
 
         if (cartItems.isEmpty()) {
             throw new IllegalArgumentException("Cart is empty");
+        }
+
+        for (CartItem cartItem : cartItems) {
+            Product product = cartItem.getProduct();
+
+            if (!product.getActive()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Product " + product.getName()
+                                + " is no longer available. Please remove it from your cart."
+                );
+            }
         }
 
         Order order = new Order();
@@ -62,7 +73,6 @@ public class OrderService {
         for (CartItem cartItem : cartItems) {
 
             OrderItem orderItem = new OrderItem();
-
             orderItem.setOrder(order);
             orderItem.setProduct(cartItem.getProduct());
             orderItem.setQuantity(cartItem.getQuantity());
@@ -91,8 +101,20 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getMyOrders(User user) {
 
-        List<Order> orders = orderRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Order> orders =
+                orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        return orders.stream()
+                .map(this::toOrderResponse)
+                .toList();
+    }
+
+    // Admin: Get all customers' orders
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAllOrders() {
+
+        List<Order> orders =
+                orderRepository.findAllByOrderByCreatedAtDesc();
 
         return orders.stream()
                 .map(this::toOrderResponse)
@@ -127,10 +149,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateOrderStatus(
-            Long orderId,
-            OrderStatus newStatus
-    ) {
+    public OrderResponse updateOrderStatus(Long orderId, OrderStatus newStatus) {
 
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -141,14 +160,9 @@ public class OrderService {
         OrderStatus currentStatus = order.getStatus();
 
         boolean validTransition =
-                (currentStatus == OrderStatus.PENDING
-                        && newStatus == OrderStatus.PAID)
-                        ||
-                        (currentStatus == OrderStatus.PAID
-                                && newStatus == OrderStatus.SHIPPED)
-                        ||
-                        (currentStatus == OrderStatus.SHIPPED
-                                && newStatus == OrderStatus.DELIVERED);
+                (currentStatus == OrderStatus.PENDING && newStatus == OrderStatus.PAID)
+                        || (currentStatus == OrderStatus.PAID && newStatus == OrderStatus.SHIPPED)
+                        || (currentStatus == OrderStatus.SHIPPED && newStatus == OrderStatus.DELIVERED);
 
         if (!validTransition) {
             throw new ResponseStatusException(
@@ -184,21 +198,23 @@ public class OrderService {
 
     private OrderResponse toOrderResponse(Order order) {
 
-        List<OrderItemResponse> itemResponses = order.getItems()
-                .stream()
-                .map(item -> new OrderItemResponse(
-                        item.getProduct().getId(),
-                        item.getProduct().getName(),
-                        item.getPrice(),
-                        item.getQuantity(),
-                        item.getPrice().multiply(
-                                BigDecimal.valueOf(item.getQuantity())
-                        )
-                ))
-                .toList();
+        List<OrderItemResponse> itemResponses =
+                order.getItems().stream()
+                        .map(item -> new OrderItemResponse(
+                                item.getProduct().getId(),
+                                item.getProduct().getName(),
+                                item.getPrice(),
+                                item.getQuantity(),
+                                item.getPrice().multiply(
+                                        BigDecimal.valueOf(item.getQuantity())
+                                )
+                        ))
+                        .toList();
 
         return new OrderResponse(
                 order.getId(),
+                order.getUser().getName(),
+                order.getUser().getEmail(),
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),

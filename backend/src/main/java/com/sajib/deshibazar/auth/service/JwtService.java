@@ -13,8 +13,8 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final long ACCESS_TOKEN_EXPIRATION = 5 * 60 * 1000;
-    private static final long REFRESH_TOKEN_EXPIRATION = 24 * 60 * 60 * 1000;
+    private static final long ACCESS_TOKEN_EXPIRATION = 24 * 60 * 60 * 1000;
+    private static final long REFRESH_TOKEN_EXPIRATION = 48 * 60 * 60 * 1000;
 
     private final SecretKey secretKey;
 

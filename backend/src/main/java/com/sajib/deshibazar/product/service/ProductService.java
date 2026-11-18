@@ -1,4 +1,3 @@
-
 package com.sajib.deshibazar.product.service;
 
 import com.sajib.deshibazar.product.entity.Product;
@@ -6,6 +5,7 @@ import com.sajib.deshibazar.product.repository.ProductRepository;
 import com.sajib.deshibazar.product.storage.ImageStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,32 +27,50 @@ public class ProductService {
     }
 
     public Product save(Product product) {
+        product.setActive(true);
         return productRepository.save(product);
     }
 
     public List<Product> findAll() {
-        return productRepository.findAll();
+        return productRepository.findByActiveTrue();
     }
 
     public Optional<Product> findById(Long id) {
-        return productRepository.findById(id);
+        return productRepository.findById(id)
+                .filter(Product::getActive);
     }
 
     public List<Product> searchByName(String keyword) {
-        return productRepository.findByNameContainingIgnoreCase(keyword);
+        return productRepository.findByNameContainingIgnoreCase(keyword)
+                .stream()
+                .filter(Product::getActive)
+                .toList();
     }
 
     public List<Product> findByCategory(String category) {
-        return productRepository.findByCategoryIgnoreCase(category);
+        return productRepository.findByCategoryIgnoreCase(category)
+                .stream()
+                .filter(Product::getActive)
+                .toList();
     }
 
     public Page<Product> findAll(Pageable pageable) {
-        return productRepository.findAll(pageable);
+        List<Product> activeProducts = findAll();
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), activeProducts.size());
+
+        List<Product> pageContent = start >= activeProducts.size()
+                ? List.of()
+                : activeProducts.subList(start, end);
+
+        return new PageImpl<>(pageContent, pageable, activeProducts.size());
     }
 
     public Optional<Product> update(Long id, Product updatedProduct) {
 
         return productRepository.findById(id)
+                .filter(Product::getActive)
                 .map(existingProduct -> {
 
                     existingProduct.setName(updatedProduct.getName());
@@ -70,6 +88,7 @@ public class ProductService {
             MultipartFile file
     ) {
         return productRepository.findById(productId)
+                .filter(Product::getActive)
                 .map(product -> {
 
                     String oldImageUrl = product.getImageUrl();
@@ -93,16 +112,12 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElse(null);
 
-        if (product == null) {
+        if (product == null || !product.getActive()) {
             return;
         }
 
-        String imageUrl = product.getImageUrl();
+        product.setActive(false);
 
-        productRepository.delete(product);
-
-        if (imageUrl != null) {
-            imageStorageService.delete(imageUrl);
-        }
+        productRepository.save(product);
     }
 }

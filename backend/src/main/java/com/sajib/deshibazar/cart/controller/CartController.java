@@ -1,4 +1,3 @@
-
 package com.sajib.deshibazar.cart.controller;
 
 import com.sajib.deshibazar.cart.dto.AddToCartRequest;
@@ -37,7 +36,8 @@ public class CartController {
                 product.getPrice().multiply(
                         BigDecimal.valueOf(item.getQuantity())
                 ),
-                product.getImageUrl()
+                product.getImageUrl(),
+                product.getStock()
         );
     }
 
@@ -89,7 +89,6 @@ public class CartController {
 
     @DeleteMapping
     public ResponseEntity<Void> clearCart(Authentication authentication) {
-
         User user = (User) authentication.getPrincipal();
 
         cartItemService.clearCart(user);

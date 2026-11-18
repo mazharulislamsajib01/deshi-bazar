@@ -1,4 +1,3 @@
-
 package com.sajib.deshibazar.cart.service;
 
 import com.sajib.deshibazar.cart.dto.CartItemResponse;
@@ -10,8 +9,10 @@ import com.sajib.deshibazar.cart.repository.CartRepository;
 import com.sajib.deshibazar.product.entity.Product;
 import com.sajib.deshibazar.product.repository.ProductRepository;
 import com.sajib.deshibazar.user.entity.User;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,16 +38,26 @@ public class CartItemService {
     }
 
     @Transactional
-    public CartItem addProductToCart(User user, Long productId, Integer quantity) {
+    public CartItem addProductToCart(
+            User user,
+            Long productId,
+            Integer quantity
+    ) {
 
         if (quantity == null || quantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than 0");
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than 0"
+            );
         }
 
-        Cart cart = cartService.getOrCreateCart(user);
-
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                .filter(Product::getActive)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Product not found or inactive"
+                ));
+
+        Cart cart = cartService.getOrCreateCart(user);
 
         CartItem cartItem = cartItemRepository
                 .findByCartIdAndProductId(cart.getId(), productId)
@@ -61,7 +72,10 @@ public class CartItemService {
         int newQuantity = cartItem.getQuantity() + quantity;
 
         if (newQuantity > product.getStock()) {
-            throw new IllegalArgumentException("Not enough product stock available");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Stocked Out"
+            );
         }
 
         cartItem.setQuantity(newQuantity);
@@ -70,23 +84,41 @@ public class CartItemService {
     }
 
     @Transactional
-    public CartItem updateQuantity(User user, Long productId, Integer quantity) {
+    public CartItem updateQuantity(
+            User user,
+            Long productId,
+            Integer quantity
+    ) {
 
         if (quantity == null || quantity <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than 0");
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than 0"
+            );
         }
 
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Cart not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Cart not found"));
 
         CartItem cartItem = cartItemRepository
                 .findByCartIdAndProductId(cart.getId(), productId)
-                .orElseThrow(() -> new IllegalArgumentException("Cart item not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Cart item not found"));
 
         Product product = cartItem.getProduct();
 
+        if (!product.getActive()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "This product is no longer available"
+            );
+        }
+
         if (quantity > product.getStock()) {
-            throw new IllegalArgumentException("Not enough product stock available");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Stocked Out"
+            );
         }
 
         cartItem.setQuantity(quantity);
@@ -98,11 +130,13 @@ public class CartItemService {
     public void removeCartItem(User user, Long productId) {
 
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Cart not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Cart not found"));
 
         CartItem cartItem = cartItemRepository
                 .findByCartIdAndProductId(cart.getId(), productId)
-                .orElseThrow(() -> new IllegalArgumentException("Cart item not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Cart item not found"));
 
         cartItemRepository.delete(cartItem);
     }
@@ -111,9 +145,11 @@ public class CartItemService {
     public void clearCart(User user) {
 
         Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Cart not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Cart not found"));
 
-        List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> cartItems =
+                cartItemRepository.findByCartId(cart.getId());
 
         cartItemRepository.deleteAll(cartItems);
     }
@@ -131,6 +167,7 @@ public class CartItemService {
         List<CartItemResponse> items = cartItemRepository
                 .findByCartId(cart.getId())
                 .stream()
+                .filter(item -> item.getProduct().getActive())
                 .map(item -> {
                     Product product = item.getProduct();
 
@@ -144,7 +181,8 @@ public class CartItemService {
                             product.getPrice(),
                             item.getQuantity(),
                             subtotal,
-                            product.getImageUrl()
+                            product.getImageUrl(),
+                            product.getStock()
                     );
                 })
                 .toList();
