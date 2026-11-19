@@ -77,80 +77,107 @@ function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">
-        Our Products
-      </h1>
+    <div
+      className="min-h-screen bg-cover bg-center bg-fixed relative"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=2000&q=85')",
+      }}
+    >
+      {/* Background Overlay */}
+      <div className="absolute inset-0 bg-black/50"></div>
 
-      <p className="text-gray-600 mb-6">
-        Explore our latest products.
-      </p>
+      {/* Page Content */}
+      <div className="relative z-10 min-h-screen p-6 md:p-8">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
-          >
-            {product.imageUrl ? (
-              <img
-                src={`http://localhost:8080${product.imageUrl}`}
-                alt={product.name}
-                className="w-full h-48 object-cover"
-              />
-            ) : (
-              <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
-                No Image Available
-              </div>
-            )}
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          Our Products
+        </h1>
 
-            <div className="p-5">
-              <span className="text-sm text-green-700 font-semibold">
-                {product.category}
-              </span>
+        <p className="text-gray-200 mb-6 text-lg">
+          Explore our latest products.
+        </p>
 
-              <h2 className="text-xl font-bold text-gray-800 mt-2">
-                {product.name}
-              </h2>
+        {error && (
+          <p className="bg-red-100 text-red-700 p-3 rounded-lg mb-5">
+            {error}
+          </p>
+        )}
 
-              <p className="text-gray-600 text-sm mt-2">
-                {product.description}
-              </p>
+        {products.length === 0 ? (
+          <div className="bg-white/95 rounded-xl p-10 text-center max-w-xl mx-auto mt-16">
+            <h2 className="text-2xl font-bold text-gray-800">
+              No Products Available
+            </h2>
 
-              <p className="text-2xl font-bold text-green-700 mt-4">
-                ৳ {product.price}
-              </p>
-
-              <p className="text-sm text-gray-500 mt-2">
-                Stock: {product.stock}
-              </p>
-
-              <button
-                onClick={() => handleAddToCart(product.id)}
-                disabled={addingProductId === product.id || product.stock <= 0}
-                className="w-full bg-green-700 text-white py-2 rounded-lg mt-4 font-semibold hover:bg-green-800 disabled:opacity-50"
-              >
-                {addingProductId === product.id
-                  ? 'Adding...'
-                  : product.stock <= 0
-                    ? 'Out of Stock'
-                    : 'Add to Cart'}
-              </button>
-
-              {addedProductId === product.id && (
-                <p className="text-green-700 text-sm text-center mt-3">
-                  Product added to cart successfully!
-                </p>
-              )}
-
-              {error && addingProductId === product.id && (
-                <p className="text-red-600 text-sm text-center mt-3">
-                  {error}
-                </p>
-              )}
-            </div>
+            <p className="text-gray-500 mt-3">
+              Please check back later for new products.
+            </p>
           </div>
-        ))}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition duration-300"
+              >
+                {product.imageUrl ? (
+                  <img
+                    src={`http://localhost:8080${product.imageUrl}`}
+                    alt={product.name}
+                    className="w-full h-48 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
+                    No Image Available
+                  </div>
+                )}
+
+                <div className="p-5">
+                  <span className="text-sm text-green-700 font-semibold">
+                    {product.category}
+                  </span>
+
+                  <h2 className="text-xl font-bold text-gray-800 mt-2">
+                    {product.name}
+                  </h2>
+
+                  <p className="text-gray-600 text-sm mt-2">
+                    {product.description}
+                  </p>
+
+                  <p className="text-2xl font-bold text-green-700 mt-4">
+                    ৳ {product.price}
+                  </p>
+
+                  <p className="text-sm text-gray-500 mt-2">
+                    Stock: {product.stock}
+                  </p>
+
+                  <button
+                    onClick={() => handleAddToCart(product.id)}
+                    disabled={
+                      addingProductId === product.id || product.stock <= 0
+                    }
+                    className="w-full bg-green-700 text-white py-2 rounded-lg mt-4 font-semibold hover:bg-green-800 disabled:opacity-50 transition duration-300"
+                  >
+                    {addingProductId === product.id
+                      ? 'Adding...'
+                      : product.stock <= 0
+                        ? 'Out of Stock'
+                        : 'Add to Cart'}
+                  </button>
+
+                  {addedProductId === product.id && (
+                    <p className="text-green-700 text-sm text-center mt-3">
+                      Product added to cart successfully!
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

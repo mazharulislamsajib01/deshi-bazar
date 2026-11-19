@@ -1,3 +1,4 @@
+
 package com.sajib.deshibazar.cart.service;
 
 import com.sajib.deshibazar.cart.dto.CartItemResponse;
@@ -154,7 +155,7 @@ public class CartItemService {
         cartItemRepository.deleteAll(cartItems);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CartResponse getCart(User user) {
 
         Cart cart = cartRepository.findByUserId(user.getId())
@@ -164,9 +165,20 @@ public class CartItemService {
             return new CartResponse(List.of(), BigDecimal.ZERO);
         }
 
-        List<CartItemResponse> items = cartItemRepository
-                .findByCartId(cart.getId())
-                .stream()
+        List<CartItem> cartItems =
+                cartItemRepository.findByCartId(cart.getId());
+
+        // Remove inactive products from database cart
+        List<CartItem> inactiveItems = cartItems.stream()
+                .filter(item -> !item.getProduct().getActive())
+                .toList();
+
+        if (!inactiveItems.isEmpty()) {
+            cartItemRepository.deleteAll(inactiveItems);
+        }
+
+        // Keep only active products
+        List<CartItemResponse> items = cartItems.stream()
                 .filter(item -> item.getProduct().getActive())
                 .map(item -> {
                     Product product = item.getProduct();

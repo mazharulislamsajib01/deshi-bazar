@@ -51,8 +51,16 @@ public class OrderService {
             throw new IllegalArgumentException("Cart is empty");
         }
 
+        System.out.println("Cart items count: " + cartItems.size());
+
         for (CartItem cartItem : cartItems) {
             Product product = cartItem.getProduct();
+
+            System.out.println(
+                    "Product: " + product.getName()
+                            + ", Active: " + product.getActive()
+                            + ", Quantity: " + cartItem.getQuantity()
+            );
 
             if (!product.getActive()) {
                 throw new ResponseStatusException(
@@ -62,6 +70,8 @@ public class OrderService {
                 );
             }
         }
+
+        System.out.println("All products are active.");
 
         Order order = new Order();
         order.setUser(user);
